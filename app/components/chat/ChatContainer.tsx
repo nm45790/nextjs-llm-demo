@@ -14,6 +14,7 @@ interface Message {
   cards?: CardData[];
   isStreaming?: boolean; // 스트리밍 중인지 여부
   displayedContent?: string; // 타이핑 애니메이션용 표시 텍스트
+  isLoadingCards?: boolean; // 카드 데이터 로딩 중인지 여부
 }
 
 export function ChatContainer() {
@@ -150,6 +151,18 @@ export function ChatContainer() {
       if (placeholderMatches) {
         console.log("플레이스홀더 감지:", placeholderMatches);
 
+        // 먼저 카드 로딩 상태를 표시
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === streamingId
+              ? {
+                  ...msg,
+                  isLoadingCards: true,
+                }
+              : msg
+          )
+        );
+
         const cardPromises = placeholderMatches.map(async (placeholder) => {
           const match = placeholder.match(/\[CARD_PLACEHOLDER_(\d+)\]/);
           if (match) {
@@ -175,7 +188,7 @@ export function ChatContainer() {
         console.log("조회된 카드 데이터:", validCards.length, "개");
         console.log("카드 데이터 상세:", validCards);
 
-        // 카드 데이터를 메시지에 추가
+        // 카드 데이터를 메시지에 추가하고 로딩 상태 해제
         setMessages((prev) => {
           console.log("메시지 업데이트 중... 현재 메시지 수:", prev.length);
           const updated = prev.map((msg) =>
@@ -183,6 +196,7 @@ export function ChatContainer() {
               ? {
                   ...msg,
                   cards: validCards,
+                  isLoadingCards: false,
                 }
               : msg
           );
@@ -235,7 +249,10 @@ export function ChatContainer() {
       {/* 하단 고정 입력창 */}
       <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-4">
         <div className="w-full max-w-6xl mx-auto">
-          <ChatInput onSendMessage={handleSendMessage} disabled={isLoading} />
+          <ChatInput
+            onSendMessageAction={handleSendMessage}
+            disabled={isLoading}
+          />
         </div>
       </div>
     </div>
