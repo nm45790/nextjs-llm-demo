@@ -71,9 +71,6 @@ const MEDICNC_RESPONSE = `# 🏥 메디씨앤씨 (MediCNC)
 
 *더 자세한 정보는 공식 홈페이지를 참조해주세요.*`;
 
-// 카드 데이터 정의 - 제거됨 (별도 API로 이동)
-// const CARD_DATA: Record<string, any> = { ... };
-
 export async function POST(request: NextRequest) {
   try {
     const { message } = await request.json();
@@ -81,10 +78,6 @@ export async function POST(request: NextRequest) {
     // 스트리밍 모드 설정 (환경변수로 제어 가능)
     const STREAMING_MODE = process.env.STREAMING_MODE || "chunk"; // 기본값을 chunk로 변경
     const CHUNK_SIZE = parseInt(process.env.CHUNK_SIZE || "20"); // 청크 모드일 때 단어 개수 (8 -> 20으로 증가)
-
-    console.log(
-      `[SSE] 스트리밍 모드: ${STREAMING_MODE}, 청크 크기: ${CHUNK_SIZE}`
-    );
 
     // 메시지 분류
     const lowerMessage = message.toLowerCase();
@@ -123,7 +116,6 @@ export async function POST(request: NextRequest) {
       start(controller) {
         // 전송된 모든 텍스트를 누적할 변수 추가
         let accumulatedText = "";
-        // let sentCards: any[] = []; // 카드 전송 제거로 불필요
 
         const sendChunk = (text: string, isLast = false) => {
           try {
@@ -138,19 +130,6 @@ export async function POST(request: NextRequest) {
               })}\n\n`
             );
             controller.enqueue(chunk);
-
-            // 마지막 청크일 때 전체 텍스트 로그 출력
-            if (isLast) {
-              console.log("=== 전송된 전체 텍스트 (플레이스홀더 포함) ===");
-              console.log(accumulatedText);
-              console.log("=== 플레이스홀더 제거된 텍스트 ===");
-              const textWithoutPlaceholders = accumulatedText.replace(
-                /\[CARD_PLACEHOLDER_\d+\]/g,
-                ""
-              );
-              console.log(textWithoutPlaceholders);
-              console.log("=== 전송 완료 (카드는 별도 API에서 조회) ===");
-            }
 
             return true;
           } catch (error) {

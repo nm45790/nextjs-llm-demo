@@ -1,11 +1,8 @@
 "use client";
 
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { formatTime } from "../../lib/utils";
 import { UserMessage } from "./UserMessage";
 import { BotMessage } from "./BotMessage";
-import { CardData } from "@/types/card";
+import { CardData } from "../../types/card";
 
 interface Message {
   id: string;

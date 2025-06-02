@@ -1,8 +1,7 @@
 import React from "react";
 import { Avatar } from "./Avatar";
 import { MessageMarkdown } from "./MessageMarkdown";
-import { CardGrid } from "../cards/CardGrid";
-import { CardData } from "@/types/card";
+import { CardData } from "../../types/card";
 import { useEffect, useState, useRef } from "react";
 
 interface BotMessageProps {

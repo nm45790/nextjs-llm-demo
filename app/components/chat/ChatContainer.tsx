@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { LoadingIndicator } from "./LoadingIndicator";
-import { CardData } from "@/types/card";
+import { CardData } from "../../types/card";
 
 interface Message {
   id: string;
@@ -108,7 +108,6 @@ export function ChatContainer() {
 
       abortControllerRef.current = new AbortController();
       let accumulatedMessage = "";
-      // const receivedCardData: CardData[] = []; // 카드 데이터는 더 이상 SSE로 받지 않음
 
       while (true) {
         const { done, value } = await reader.read();
@@ -137,7 +136,6 @@ export function ChatContainer() {
                   )
                 );
               }
-              // 카드 타입 처리 제거 - 더 이상 SSE로 카드를 받지 않음
             } catch (e) {
               console.error("Error parsing SSE data:", e);
             }
