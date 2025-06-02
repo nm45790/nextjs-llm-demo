@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🏥 메디씨앤씨 AI
 
-## Getting Started
+메디씨앤씨의 의료 IT 솔루션에 대해 안내하는 AI 채팅 서비스입니다.
 
-First, run the development server:
+## ✨ 주요 기능
+
+- 🤖 **실시간 AI 채팅**: 메디씨앤씨 서비스에 대한 상세한 안내
+- ⚡ **스트리밍 응답**: 자연스러운 타이핑 효과로 실시간 응답
+- 📝 **마크다운 렌더링**: 아름답게 포맷된 응답 제공
+- 🎨 **모던 UI**: 반응형 디자인과 다크모드 지원
+
+## 🔍 안내 가능한 내용
+
+- 메디씨앤씨 회사 소개
+- 병원정보시스템 (HIS)
+- 전자의무기록 (EMR)
+- 처방전달시스템 (OCS)
+- 의료영상저장전송시스템 (PACS)
+- 의료 데이터 분석 솔루션
+- 고객 지원 및 문의 방법
+
+## 🚀 기술 스택
+
+- **Next.js 15.3.3** with Turbopack
+- **React 19**
+- **TypeScript**
+- **Tailwind CSS v4**
+- **Server-Sent Events (SSE)**
+- **React Markdown**
+
+## 📦 설치 및 실행
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# 의존성 설치
+pnpm install
+
+# 개발 서버 실행
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+브라우저에서 `http://localhost:3000`으로 접속하세요.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 💬 사용 방법
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. "안녕하세요"라고 인사하여 시작하세요
+2. 메디씨앤씨의 서비스에 대해 질문해보세요
+3. 실시간으로 타이핑되는 상세한 답변을 확인하세요
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+_메디씨앤씨 - 의료 IT 혁신을 통한 더 나은 의료 서비스 구현_
