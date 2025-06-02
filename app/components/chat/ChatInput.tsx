@@ -3,20 +3,17 @@
 import { useState } from "react";
 
 interface ChatInputProps {
-  onSendMessageAction: (message: string) => void;
+  onSendMessage: (message: string) => void;
   disabled?: boolean;
 }
 
-export function ChatInput({
-  onSendMessageAction,
-  disabled = false,
-}: ChatInputProps) {
+export function ChatInput({ onSendMessage, disabled = false }: ChatInputProps) {
   const [message, setMessage] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() && !disabled) {
-      onSendMessageAction(message.trim());
+      onSendMessage(message.trim());
       setMessage("");
     }
   };

@@ -69,10 +69,10 @@ const CARD_DATA: Record<string, any> = {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
 
     console.log(`[카드 API] 카드 ID ${id} 조회 요청`);
 

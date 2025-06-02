@@ -11,7 +11,6 @@ interface Message {
   timestamp: Date;
   cards?: CardData[];
   displayedContent?: string;
-  isLoadingCards?: boolean;
 }
 
 interface ChatMessageProps {
@@ -35,7 +34,6 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
       timestamp={message.timestamp}
       cards={message.cards}
       isStreaming={isStreaming}
-      isLoadingCards={message.isLoadingCards}
     />
   );
 }

@@ -10,7 +10,6 @@ interface BotMessageProps {
   timestamp: Date;
   cards?: CardData[];
   isStreaming?: boolean;
-  isLoadingCards?: boolean;
 }
 
 export function BotMessage({
@@ -19,7 +18,6 @@ export function BotMessage({
   timestamp,
   cards,
   isStreaming,
-  isLoadingCards,
 }: BotMessageProps) {
   const [isClient, setIsClient] = useState(false);
   const [currentDisplayed, setCurrentDisplayed] = useState(
@@ -84,36 +82,10 @@ export function BotMessage({
     };
   }, []);
 
-  // 스켈레톤 카드 컴포넌트
-  const SkeletonCard = () => (
-    <div
-      className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 border border-gray-200 dark:border-gray-700 h-[160px] inline-block mr-3 mb-3 animate-pulse"
-      style={{ width: "23%" }}
-    >
-      <div className="flex flex-col h-full">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-4 h-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
-          <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-20"></div>
-        </div>
-        <div className="space-y-2 flex-1">
-          <div className="h-2 bg-gray-300 dark:bg-gray-600 rounded w-full"></div>
-          <div className="h-2 bg-gray-300 dark:bg-gray-600 rounded w-3/4"></div>
-        </div>
-        <div className="flex gap-1 mt-2">
-          <div className="h-5 bg-gray-300 dark:bg-gray-600 rounded-full w-12"></div>
-          <div className="h-5 bg-gray-300 dark:bg-gray-600 rounded-full w-16"></div>
-        </div>
-      </div>
-    </div>
-  );
-
   // 마크다운 텍스트를 파싱하여 카드 플레이스홀더 위치에 카드 삽입
   const renderContentWithCards = () => {
-    // 카드 로딩 중이거나 플레이스홀더가 있는 경우
-    const hasPlaceholders = currentDisplayed.includes("[CARD_PLACEHOLDER_");
-
-    // 카드가 없고 플레이스홀더도 없는 경우 기본 렌더링
-    if (!hasPlaceholders && (!cards || cards.length === 0)) {
+    // 카드가 없는 경우 기본 렌더링
+    if (!cards || cards.length === 0) {
       return (
         <div className="flex flex-col justify-start mb-6">
           <div className="flex items-start gap-3">
@@ -136,7 +108,7 @@ export function BotMessage({
       );
     }
 
-    // 플레이스홀더가 있는 경우: 순서를 유지하면서 카드 처리
+    // 카드가 있는 경우: 순서를 유지하면서 카드 그리드만 통합
     const parts = currentDisplayed.split(/(\[CARD_PLACEHOLDER_\d+\])/);
 
     return (
@@ -154,22 +126,7 @@ export function BotMessage({
                     // 카드 플레이스홀더인 경우
                     const cardId = cardMatch[1];
                     const cardIndex = parseInt(cardId) - 1;
-
-                    // 카드 로딩 중이면 스켈레톤 표시
-                    if (isLoadingCards) {
-                      // 플레이스홀더 개수만큼 스켈레톤 카드 표시 (임시로 4개)
-                      return (
-                        <div key={`skeleton-group-${index}`}>
-                          {[...Array(4)].map((_, skeletonIndex) => (
-                            <SkeletonCard
-                              key={`skeleton-${index}-${skeletonIndex}`}
-                            />
-                          ))}
-                        </div>
-                      );
-                    }
-
-                    const matchingCard = cards?.[cardIndex];
+                    const matchingCard = cards[cardIndex];
 
                     if (matchingCard) {
                       if ("id" in matchingCard) {
