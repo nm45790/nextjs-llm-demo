@@ -177,6 +177,7 @@ export async function POST(request: NextRequest) {
       lowerMessage.includes("병원") ||
       lowerMessage.includes("의료") ||
       lowerMessage.includes("정보시스템") ||
+      lowerMessage.includes("메디") ||
       lowerMessage.includes("전자의무기록");
 
     // SSE 응답 설정
@@ -185,25 +186,37 @@ export async function POST(request: NextRequest) {
     const stream = new ReadableStream({
       start(controller) {
         const sendChunk = (text: string, isLast = false) => {
-          const chunk = encoder.encode(
-            `data: ${JSON.stringify({
-              type: "text",
-              content: text,
-              done: isLast,
-            })}\n\n`
-          );
-          controller.enqueue(chunk);
+          try {
+            const chunk = encoder.encode(
+              `data: ${JSON.stringify({
+                type: "text",
+                content: text,
+                done: isLast,
+              })}\n\n`
+            );
+            controller.enqueue(chunk);
+            return true;
+          } catch (error) {
+            console.log("Controller already closed, stopping stream");
+            return false;
+          }
         };
 
         const sendCard = (cardData: any) => {
-          const chunk = encoder.encode(
-            `data: ${JSON.stringify({
-              type: "card",
-              content: cardData,
-              done: false,
-            })}\n\n`
-          );
-          controller.enqueue(chunk);
+          try {
+            const chunk = encoder.encode(
+              `data: ${JSON.stringify({
+                type: "card",
+                content: cardData,
+                done: false,
+              })}\n\n`
+            );
+            controller.enqueue(chunk);
+            return true;
+          } catch (error) {
+            console.log("Controller already closed, stopping card send");
+            return false;
+          }
         };
 
         // 응답 텍스트 결정
@@ -228,8 +241,9 @@ export async function POST(request: NextRequest) {
 
           const sendNextChunk = () => {
             if (wordIndex >= words.length) {
-              sendChunk("", true);
-              controller.close();
+              if (sendChunk("", true)) {
+                controller.close();
+              }
               return;
             }
 
@@ -251,15 +265,16 @@ export async function POST(request: NextRequest) {
                 if (CARD_DATA[placeholderKey]) {
                   // 카드 데이터 전송
                   sendCard(CARD_DATA[placeholderKey]);
-                  // 플레이스홀더 제거
-                  chunkText = chunkText.replace(/\[CARD_PLACEHOLDER_\d+\]/, "");
+                  // 플레이스홀더는 제거하지 않고 그대로 유지
                 }
               }
             }
 
             // 텍스트가 있으면 전송
             if (chunkText.trim()) {
-              sendChunk(chunkText, false);
+              if (!sendChunk(chunkText, false)) {
+                return; // 컨트롤러가 닫혔으면 중단
+              }
             }
 
             // 청크 간 지연 시간
@@ -286,8 +301,9 @@ export async function POST(request: NextRequest) {
           const sendNextWord = () => {
             if (wordIndex >= words.length) {
               // 완료 신호 전송
-              sendChunk("", true);
-              controller.close();
+              if (sendChunk("", true)) {
+                controller.close();
+              }
               return;
             }
 
@@ -305,15 +321,14 @@ export async function POST(request: NextRequest) {
                 if (CARD_DATA[placeholderKey]) {
                   // 카드 데이터 전송
                   sendCard(CARD_DATA[placeholderKey]);
-                  // 다음 단어로 넘어가기 (플레이스홀더는 텍스트로 전송하지 않음)
-                  setTimeout(sendNextWord, 100);
-                  return;
                 }
               }
             }
 
-            // 델타(새로운 단어)만 전송
-            sendChunk(currentWord, false);
+            // 플레이스홀더도 포함하여 텍스트 전송
+            if (!sendChunk(currentWord, false)) {
+              return; // 컨트롤러가 닫혔으면 중단
+            }
 
             // 다음 단어를 위한 지연 시간 계산
             let delay = 50; // 기본 지연 시간

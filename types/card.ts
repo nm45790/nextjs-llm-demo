@@ -3,7 +3,7 @@ export interface CardData {
   cards: {
     title: string;
     description: string;
-    features: string[];
+    features?: string[];
     price?: string;
     link?: string;
   }[];

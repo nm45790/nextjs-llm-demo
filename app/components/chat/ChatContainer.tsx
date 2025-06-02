@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
-import { StreamingMessage } from "./StreamingMessage";
 import { LoadingIndicator } from "./LoadingIndicator";
 import { CardData } from "@/types/card";
 
@@ -13,6 +12,8 @@ interface Message {
   role: "user" | "assistant";
   timestamp: Date;
   cards?: CardData[];
+  isStreaming?: boolean; // 스트리밍 중인지 여부
+  displayedContent?: string; // 타이핑 애니메이션용 표시 텍스트
 }
 
 export function ChatContainer() {
@@ -26,83 +27,41 @@ export function ChatContainer() {
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
-  const [streamingMessage, setStreamingMessage] = useState<string>("");
-  const [displayedMessage, setDisplayedMessage] = useState<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const currentTypingIndexRef = useRef<number>(0);
-  const [receivedCards, setReceivedCards] = useState<CardData[]>([]);
-  const [displayedCards, setDisplayedCards] = useState<CardData[]>([]);
+  const [currentStreamingId, setCurrentStreamingId] = useState<string>("");
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // 타이핑 애니메이션 함수
-  const animateTyping = (targetText: string, startIndex: number = 0) => {
-    if (startIndex >= targetText.length) {
-      return;
+  useEffect(() => {
+    // 초기 로딩이 아닐 때만 스크롤
+    if (!isInitialLoad) {
+      scrollToBottom();
     }
-
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    const currentChar = targetText[startIndex];
-    const newDisplayText = targetText.slice(0, startIndex + 1);
-    setDisplayedMessage(newDisplayText);
-    currentTypingIndexRef.current = startIndex + 1;
-
-    // 플레이스홀더 감지 및 카드 표시 동기화
-    const placeholderMatches = newDisplayText.match(
-      /\[CARD_PLACEHOLDER_(\d+)\]/g
-    );
-    if (placeholderMatches) {
-      const placeholderNumbers = placeholderMatches.map((match) =>
-        parseInt(match.match(/\[CARD_PLACEHOLDER_(\d+)\]/)?.[1] || "0")
-      );
-
-      const cardsToShow = receivedCards.filter((_, index) =>
-        placeholderNumbers.includes(index + 1)
-      );
-
-      if (cardsToShow.length !== displayedCards.length) {
-        setDisplayedCards(cardsToShow);
-      }
-    }
-
-    let delay = 15;
-    if (currentChar === "." || currentChar === "!" || currentChar === "?") {
-      delay = 150;
-    } else if (currentChar === "," || currentChar === ";") {
-      delay = 100;
-    } else if (currentChar === " ") {
-      delay = 30;
-    }
-
-    typingTimeoutRef.current = setTimeout(() => {
-      animateTyping(targetText, startIndex + 1);
-    }, delay);
-  };
+  }, [messages, isInitialLoad]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, displayedMessage, displayedCards]);
+    // 컴포넌트 마운트 후 초기 로딩 상태 해제
+    const timer = setTimeout(() => {
+      setIsInitialLoad(false);
+    }, 100);
 
-  useEffect(() => {
     return () => {
+      clearTimeout(timer);
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
-      }
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
       }
     };
   }, []);
 
   // 메시지 전송 함수
   const handleSendMessage = async (content: string) => {
+    // 메시지 전송 시에는 스크롤 허용
+    setIsInitialLoad(false);
+
     const newUserMessage: Message = {
       id: Date.now().toString(),
       content: content,
@@ -112,14 +71,21 @@ export function ChatContainer() {
 
     setMessages((prev) => [...prev, newUserMessage]);
     setIsLoading(true);
-    setStreamingMessage("");
-    setDisplayedMessage("");
-    setReceivedCards([]);
-    setDisplayedCards([]);
 
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
+    // 스트리밍 메시지 초기화
+    const streamingId = (Date.now() + 1).toString();
+    setCurrentStreamingId(streamingId);
+
+    const initialStreamingMessage: Message = {
+      id: streamingId,
+      content: "",
+      role: "assistant",
+      timestamp: new Date(),
+      isStreaming: true,
+      displayedContent: "", // 타이핑 애니메이션용 초기값
+    };
+
+    setMessages((prev) => [...prev, initialStreamingMessage]);
 
     try {
       const response = await fetch("/api/chat", {
@@ -157,10 +123,32 @@ export function ChatContainer() {
 
               if (data.type === "text") {
                 accumulatedMessage += data.content;
-                setStreamingMessage(accumulatedMessage);
+
+                // 실시간으로 메시지 업데이트
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === streamingId
+                      ? {
+                          ...msg,
+                          content: accumulatedMessage,
+                        }
+                      : msg
+                  )
+                );
               } else if (data.type === "card") {
                 receivedCardData.push(data.content);
-                setReceivedCards([...receivedCardData]);
+
+                // 실시간으로 카드 업데이트
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === streamingId
+                      ? {
+                          ...msg,
+                          cards: [...receivedCardData],
+                        }
+                      : msg
+                  )
+                );
               }
             } catch (e) {
               console.error("Error parsing SSE data:", e);
@@ -169,60 +157,52 @@ export function ChatContainer() {
         }
       }
 
-      // 스트리밍 완료 후 타이핑 애니메이션 시작
+      // 스트리밍 완료 - isStreaming 플래그 제거
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === streamingId
+            ? {
+                ...msg,
+                isStreaming: false,
+              }
+            : msg
+        )
+      );
+
       setIsLoading(false);
-      animateTyping(accumulatedMessage);
-
-      // 최종 메시지 저장
-      const finalMessage: Message = {
-        id: Date.now().toString(),
-        content: accumulatedMessage,
-        role: "assistant",
-        timestamp: new Date(),
-        cards: receivedCardData.length > 0 ? receivedCardData : undefined,
-      };
-
-      setTimeout(() => {
-        setMessages((prev) => [...prev, finalMessage]);
-        setStreamingMessage("");
-        setDisplayedMessage("");
-        setDisplayedCards([]);
-      }, accumulatedMessage.length * 15 + 500);
+      setCurrentStreamingId("");
     } catch (error) {
       console.error("Error:", error);
       setIsLoading(false);
-      setStreamingMessage("");
-      setDisplayedMessage("");
+      setCurrentStreamingId("");
+
+      // 에러 발생 시 스트리밍 메시지 제거
+      setMessages((prev) => prev.filter((msg) => msg.id !== streamingId));
     }
   };
 
   return (
-    <div className="flex flex-col h-screen bg-white dark:bg-gray-900">
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+    <div className="bg-white dark:bg-gray-900">
+      <div className="p-6 space-y-6 pb-24">
         {messages.map((message) => (
-          <ChatMessage key={message.id} message={message} />
+          <ChatMessage
+            key={message.id}
+            message={message}
+            isStreaming={message.isStreaming}
+          />
         ))}
 
-        {/* 스트리밍 메시지 표시 */}
-        {(streamingMessage || displayedMessage) && (
-          <StreamingMessage
-            displayedMessage={displayedMessage}
-            displayedCards={displayedCards}
-            isTyping={
-              !!displayedMessage &&
-              displayedMessage.length < streamingMessage.length
-            }
-          />
-        )}
-
         {/* 로딩 인디케이터 */}
-        {isLoading && !streamingMessage && <LoadingIndicator />}
+        {isLoading && !currentStreamingId && <LoadingIndicator />}
 
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="border-t border-gray-200 dark:border-gray-700 p-4">
-        <ChatInput onSendMessage={handleSendMessage} disabled={isLoading} />
+      {/* 하단 고정 입력창 */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-4">
+        <div className="w-full max-w-6xl mx-auto">
+          <ChatInput onSendMessage={handleSendMessage} disabled={isLoading} />
+        </div>
       </div>
     </div>
   );

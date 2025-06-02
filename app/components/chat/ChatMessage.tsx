@@ -13,13 +13,15 @@ interface Message {
   role: "user" | "assistant";
   timestamp: Date;
   cards?: CardData[];
+  displayedContent?: string;
 }
 
 interface ChatMessageProps {
   message: Message;
+  isStreaming?: boolean;
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
   const isUser = message.role === "user";
 
   if (isUser) {
@@ -31,8 +33,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
   return (
     <BotMessage
       content={message.content}
+      displayedContent={message.displayedContent}
       timestamp={message.timestamp}
       cards={message.cards}
+      isStreaming={isStreaming}
     />
   );
 }

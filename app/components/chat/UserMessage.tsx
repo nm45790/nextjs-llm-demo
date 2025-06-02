@@ -1,4 +1,5 @@
 import { Avatar } from "./Avatar";
+import { useEffect, useState } from "react";
 
 interface UserMessageProps {
   content: string;
@@ -6,13 +7,19 @@ interface UserMessageProps {
 }
 
 export function UserMessage({ content, timestamp }: UserMessageProps) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   return (
     <div className="flex justify-end mb-6">
       <div className="flex items-start gap-3 max-w-[80%]">
         <div className="bg-teal-600 text-white rounded-lg px-4 py-3 flex-1">
           <div className="text-sm leading-relaxed">{content}</div>
           <div className="text-xs text-white/70 mt-2">
-            {timestamp.toLocaleTimeString()}
+            {isClient ? timestamp.toLocaleTimeString() : ""}
           </div>
         </div>
         <Avatar type="user" />
