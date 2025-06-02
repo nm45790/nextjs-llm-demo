@@ -27,6 +27,9 @@ const MEDICNC_RESPONSE = `# 🏥 메디씨앤씨 (MediCNC)
 ## 🌟 주요 서비스
 
 [CARD_PLACEHOLDER_1]
+[CARD_PLACEHOLDER_2]
+[CARD_PLACEHOLDER_3]
+[CARD_PLACEHOLDER_4]
 
 ### 📊 5. 의료 데이터 분석 솔루션
 - **빅데이터 분석**을 통한 의료 인사이트 제공 📈
@@ -38,7 +41,9 @@ const MEDICNC_RESPONSE = `# 🏥 메디씨앤씨 (MediCNC)
 
 ## 🏆 핵심 강점
 
-[CARD_PLACEHOLDER_2]
+[CARD_PLACEHOLDER_5]
+[CARD_PLACEHOLDER_6]
+[CARD_PLACEHOLDER_7]
 
 ---
 
@@ -66,77 +71,8 @@ const MEDICNC_RESPONSE = `# 🏥 메디씨앤씨 (MediCNC)
 
 *더 자세한 정보는 공식 홈페이지를 참조해주세요.*`;
 
-// 카드 데이터 정의
-const CARD_DATA: Record<string, any> = {
-  CARD_PLACEHOLDER_1: {
-    type: "service_cards",
-    title: "메디씨앤씨 핵심 서비스",
-    cards: [
-      {
-        id: "his",
-        title: "병원정보시스템 (HIS)",
-        description: "통합 병원 관리 시스템 구축 및 운영",
-        icon: "🏥",
-        features: ["환자 관리", "진료 관리", "수납 관리", "실시간 데이터 처리"],
-        color: "blue",
-      },
-      {
-        id: "emr",
-        title: "전자의무기록 (EMR)",
-        description: "디지털 의무기록 시스템으로 종이 차트 완전 대체",
-        icon: "📋",
-        features: ["디지털 기록", "업무 효율성", "환자 안전성", "법적 준수"],
-        color: "green",
-      },
-      {
-        id: "ocs",
-        title: "처방전달시스템 (OCS)",
-        description: "전자처방전 시스템으로 정확하고 신속한 처방 전달",
-        icon: "💊",
-        features: ["전자처방", "상호작용 체크", "오류 방지", "실시간 연동"],
-        color: "purple",
-      },
-      {
-        id: "pacs",
-        title: "의료영상저장전송시스템 (PACS)",
-        description: "의료 영상 데이터 디지털 저장 및 전송",
-        icon: "🔬",
-        features: ["영상 저장", "빠른 처리", "원격 판독", "장기 보관"],
-        color: "orange",
-      },
-    ],
-  },
-  CARD_PLACEHOLDER_2: {
-    type: "strength_cards",
-    title: "메디씨앤씨의 핵심 강점",
-    cards: [
-      {
-        id: "tech",
-        title: "기술 혁신",
-        description: "최신 IT 기술 적극 도입 및 활용",
-        icon: "💡",
-        highlights: ["클라우드 기반", "모바일 최적화", "AI/ML 기술"],
-        color: "blue",
-      },
-      {
-        id: "service",
-        title: "고객 중심 서비스",
-        description: "24시간 기술 지원 및 맞춤형 솔루션",
-        icon: "🤝",
-        highlights: ["24시간 지원", "맞춤형 설계", "지속적 개선"],
-        color: "green",
-      },
-      {
-        id: "security",
-        title: "보안 및 안정성",
-        description: "의료 데이터 보안 최고 수준 보장",
-        icon: "🔒",
-        highlights: ["데이터 보안", "개인정보보호", "재해복구"],
-        color: "red",
-      },
-    ],
-  },
-};
+// 카드 데이터 정의 - 제거됨 (별도 API로 이동)
+// const CARD_DATA: Record<string, any> = { ... };
 
 export async function POST(request: NextRequest) {
   try {
@@ -144,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     // 스트리밍 모드 설정 (환경변수로 제어 가능)
     const STREAMING_MODE = process.env.STREAMING_MODE || "chunk"; // 기본값을 chunk로 변경
-    const CHUNK_SIZE = parseInt(process.env.CHUNK_SIZE || "8"); // 청크 모드일 때 단어 개수
+    const CHUNK_SIZE = parseInt(process.env.CHUNK_SIZE || "20"); // 청크 모드일 때 단어 개수 (8 -> 20으로 증가)
 
     console.log(
       `[SSE] 스트리밍 모드: ${STREAMING_MODE}, 청크 크기: ${CHUNK_SIZE}`
@@ -185,8 +121,15 @@ export async function POST(request: NextRequest) {
 
     const stream = new ReadableStream({
       start(controller) {
+        // 전송된 모든 텍스트를 누적할 변수 추가
+        let accumulatedText = "";
+        // let sentCards: any[] = []; // 카드 전송 제거로 불필요
+
         const sendChunk = (text: string, isLast = false) => {
           try {
+            // 텍스트 누적
+            accumulatedText += text;
+
             const chunk = encoder.encode(
               `data: ${JSON.stringify({
                 type: "text",
@@ -195,26 +138,23 @@ export async function POST(request: NextRequest) {
               })}\n\n`
             );
             controller.enqueue(chunk);
+
+            // 마지막 청크일 때 전체 텍스트 로그 출력
+            if (isLast) {
+              console.log("=== 전송된 전체 텍스트 (플레이스홀더 포함) ===");
+              console.log(accumulatedText);
+              console.log("=== 플레이스홀더 제거된 텍스트 ===");
+              const textWithoutPlaceholders = accumulatedText.replace(
+                /\[CARD_PLACEHOLDER_\d+\]/g,
+                ""
+              );
+              console.log(textWithoutPlaceholders);
+              console.log("=== 전송 완료 (카드는 별도 API에서 조회) ===");
+            }
+
             return true;
           } catch (error) {
             console.log("Controller already closed, stopping stream");
-            return false;
-          }
-        };
-
-        const sendCard = (cardData: any) => {
-          try {
-            const chunk = encoder.encode(
-              `data: ${JSON.stringify({
-                type: "card",
-                content: cardData,
-                done: false,
-              })}\n\n`
-            );
-            controller.enqueue(chunk);
-            return true;
-          } catch (error) {
-            console.log("Controller already closed, stopping card send");
             return false;
           }
         };
@@ -252,22 +192,6 @@ export async function POST(request: NextRequest) {
             for (let i = 0; i < CHUNK_SIZE && wordIndex < words.length; i++) {
               chunkText += words[wordIndex];
               wordIndex++;
-            }
-
-            // 카드 플레이스홀더 감지 및 처리
-            if (chunkText.includes("[CARD_PLACEHOLDER_")) {
-              // 플레이스홀더를 찾아서 카드 데이터 전송
-              const placeholderMatch = chunkText.match(
-                /\[CARD_PLACEHOLDER_(\d+)\]/
-              );
-              if (placeholderMatch) {
-                const placeholderKey = `CARD_PLACEHOLDER_${placeholderMatch[1]}`;
-                if (CARD_DATA[placeholderKey]) {
-                  // 카드 데이터 전송
-                  sendCard(CARD_DATA[placeholderKey]);
-                  // 플레이스홀더는 제거하지 않고 그대로 유지
-                }
-              }
             }
 
             // 텍스트가 있으면 전송
@@ -309,21 +233,6 @@ export async function POST(request: NextRequest) {
 
             const currentWord = words[wordIndex];
             wordIndex++;
-
-            // 카드 플레이스홀더 감지 및 처리
-            if (currentWord.includes("[CARD_PLACEHOLDER_")) {
-              // 플레이스홀더를 찾아서 카드 데이터 전송
-              const placeholderMatch = currentWord.match(
-                /\[CARD_PLACEHOLDER_(\d+)\]/
-              );
-              if (placeholderMatch) {
-                const placeholderKey = `CARD_PLACEHOLDER_${placeholderMatch[1]}`;
-                if (CARD_DATA[placeholderKey]) {
-                  // 카드 데이터 전송
-                  sendCard(CARD_DATA[placeholderKey]);
-                }
-              }
-            }
 
             // 플레이스홀더도 포함하여 텍스트 전송
             if (!sendChunk(currentWord, false)) {

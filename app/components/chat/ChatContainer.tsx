@@ -22,6 +22,7 @@ export function ChatContainer() {
       id: "1",
       content:
         "안녕하세요! 저는 메디씨앤씨와 의료 IT 솔루션에 대해 알려드리는 AI입니다. 궁금한 점이 있으시면 언제든 물어보세요.",
+
       role: "assistant",
       timestamp: new Date(),
     },
@@ -107,7 +108,7 @@ export function ChatContainer() {
 
       abortControllerRef.current = new AbortController();
       let accumulatedMessage = "";
-      const receivedCardData: CardData[] = [];
+      // const receivedCardData: CardData[] = []; // 카드 데이터는 더 이상 SSE로 받지 않음
 
       while (true) {
         const { done, value } = await reader.read();
@@ -135,26 +136,61 @@ export function ChatContainer() {
                       : msg
                   )
                 );
-              } else if (data.type === "card") {
-                receivedCardData.push(data.content);
-
-                // 실시간으로 카드 업데이트
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === streamingId
-                      ? {
-                          ...msg,
-                          cards: [...receivedCardData],
-                        }
-                      : msg
-                  )
-                );
               }
+              // 카드 타입 처리 제거 - 더 이상 SSE로 카드를 받지 않음
             } catch (e) {
               console.error("Error parsing SSE data:", e);
             }
           }
         }
+      }
+
+      // 스트리밍 완료 후 플레이스홀더 감지 및 카드 데이터 조회
+      const placeholderMatches = accumulatedMessage.match(
+        /\[CARD_PLACEHOLDER_(\d+)\]/g
+      );
+      if (placeholderMatches) {
+        console.log("플레이스홀더 감지:", placeholderMatches);
+
+        const cardPromises = placeholderMatches.map(async (placeholder) => {
+          const match = placeholder.match(/\[CARD_PLACEHOLDER_(\d+)\]/);
+          if (match) {
+            const cardId = match[1];
+            try {
+              console.log(`카드 ID ${cardId} 조회 중...`);
+              const cardResponse = await fetch(`/api/cards/${cardId}`);
+              if (cardResponse.ok) {
+                const cardData = await cardResponse.json();
+                console.log(`카드 ID ${cardId} 조회 완료:`, cardData.title);
+                return cardData;
+              }
+            } catch (error) {
+              console.error(`카드 ID ${cardId} 조회 실패:`, error);
+            }
+          }
+          return null;
+        });
+
+        const cardResults = await Promise.all(cardPromises);
+        const validCards = cardResults.filter((card) => card !== null);
+
+        console.log("조회된 카드 데이터:", validCards.length, "개");
+        console.log("카드 데이터 상세:", validCards);
+
+        // 카드 데이터를 메시지에 추가
+        setMessages((prev) => {
+          console.log("메시지 업데이트 중... 현재 메시지 수:", prev.length);
+          const updated = prev.map((msg) =>
+            msg.id === streamingId
+              ? {
+                  ...msg,
+                  cards: validCards,
+                }
+              : msg
+          );
+          console.log("업데이트된 메시지 수:", updated.length);
+          return updated;
+        });
       }
 
       // 스트리밍 완료 - isStreaming 플래그 제거
